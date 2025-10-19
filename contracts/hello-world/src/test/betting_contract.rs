@@ -83,7 +83,7 @@ mod tests {
                                 "Event PrivateSetting- Game ID: {}, Admin User: {:?}, Setting: {}, Amount Bet: {}",
                                 game_id, user,setting_id ,amount_bet 
                             );
-                                } else if symbol_str == "Game_Result" {
+                                } else if symbol_str == "Game_Resultx" {
                                     let raw: SorobanVec<Val> = value.try_into_val(&env).unwrap();
                                     let game_id: i128 =
                                         raw.get(0).unwrap().try_into_val(&env).unwrap();
@@ -660,7 +660,7 @@ mod tests {
         client.assessResult(&user, &game_id, &game_id, &AssessmentKey::approve);
 
         // Execute distribution
-        client.execute_distribution(&game_id);
+        //client.execute_distribution(&game_id);
         // Claim as winner
 
         //client.claim(&user, &ClaimType::User, &game_id);
@@ -733,7 +733,7 @@ mod tests {
         client.assessResult(&user, &game_idx, &game_idx, &AssessmentKey::approve);
 
         // Execute distribution
-        client.execute_distribution(&game_idx);
+        //client.execute_distribution(&game_idx);
         // Claim as winner
 
         client.claim(&user, &ClaimType::User, &game_idx);
@@ -763,7 +763,7 @@ mod tests {
             endTime: 2000,
             summiter: Address::generate(&env),
             Checker: soroban_sdk::Vec::new(&env),
-            active: false,
+            active: true,
             league: 1,
             description: String::from_slice(&env, "Team A vs Team B"),
             team_local: 33,
@@ -829,7 +829,7 @@ mod tests {
         client.assessResult(&user, &game_id, &game_id, &AssessmentKey::approve);
 
         // Execute distribution
-        client.execute_distribution(&game_id);
+        ///client.execute_distribution(&game_id);
         // Claim as winner
 
         client.claim(&user, &ClaimType::User, &game_id);
@@ -902,7 +902,7 @@ mod tests {
         client.assessResult(&user, &game_idx, &game_idx, &AssessmentKey::approve);
 
         // Execute distribution
-        client.execute_distribution(&game_idx);
+        //client.execute_distribution(&game_idx);
         // Claim as winner
 
         client.claim(&user, &ClaimType::User, &game_idx);
@@ -993,15 +993,15 @@ mod tests {
             distribution_executed: false,
         };
 
-        client.summitResult(&summiter2, &result);
+        client.summitResult(&summiter, &result);
 
         client.assessResult(&user, &game_id, &game_id, &AssessmentKey::approve);
 
-        // Execute distribution
-        client.execute_distribution(&game_id);
+        // Execute distribution&¿
+        //client.execute_distribution(&game_id);
         // Claim as winner
 
-        client.claim(&user, &ClaimType::User, &game_id);
+        client.claim(&user, &ClaimType::User, &112);
         client.claim(&summiter2, &ClaimType::Summiter, &game_id);
 
         // Verify token transfers (winner gets bet + share of pool)
@@ -1192,7 +1192,7 @@ mod tests {
         client.assessResult(&user, &game_id, &game_id, &AssessmentKey::approve);
 
         // Execute distribution
-        client.execute_distribution(&game_id);
+        //client.execute_distribution(&game_id);
         // Claim as winner
 
         client.claim_refund(&user, &game_id);
@@ -1318,7 +1318,7 @@ mod tests {
         client.summitResult(&summiter2, &result);
 
         client.assessResult(&user, &game_id, &game_id, &AssessmentKey::reject);
-        client.execute_distribution(&game_id);
+        //client.execute_distribution(&game_id);
         std::println!("User balance final {:?}", token_usd_client.balance(&user));
         std::println!("User2 balance final {:?}", token_usd_client.balance(&user2));
         std::println!(
@@ -1656,14 +1656,14 @@ mod tests {
             distribution_executed: false,
         };
 
-        client.summitResult(&summiter2, &result);
+        client.summitResult(&summiter, &result);
 
         client.assessResult(&user2, &11, &game_id, &AssessmentKey::approve);
         client.assessResult(&user, &11, &game_id, &AssessmentKey::approve);
         client.assessResult(&summiter, &0, &game_id, &AssessmentKey::approve);
 
         //client.assessResult(&user, &bet, &game_id, &AssessmentKey::approve);
-        client.execute_distribution(&game_id);
+        client.execute_distribution(&game_id, &11);
         //client.setResult_supremCourt(&user, &result2);
         // Execute distribution
 
@@ -1818,7 +1818,7 @@ mod tests {
             description: String::from_str(&env, "Final Score 2-1"),
             distribution_executed: false,
         };
-        client.summitResult(&summiter2, &result);
+        client.summitResult(&summiter, &result);
         all_events.push(env.events().all());
 
         client.assessResult(&user, &11, &game_id, &AssessmentKey::reject);

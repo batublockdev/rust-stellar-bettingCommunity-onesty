@@ -33,6 +33,7 @@ struct NewUserAddedPrivateEvent {
 struct GameResultEvent {
     game_id: i128,
     result: BetKey,
+    description: String,
 }
 #[contractevent(topics = ["BettingGame", "Game_ResultbySupremeCourt"], data_format = "vec")]
 struct GameResultSupremeEvent {
@@ -44,9 +45,18 @@ struct UserHonestyPointsEvent {
     user: Address,
     points: i128,
 }
+#[contractevent(topics = ["BettingGame", "Active_Setting"], data_format = "vec")]
+struct Active_SettingEvent {
+    game_id: i128,
+    Setting: i128,
+}
 
 #[contractevent(topics = ["BettingGame", "Game_Result_Reject"], data_format = "single-value")]
 struct GameResultRejectEvent {
+    game_id: i128,
+}
+#[contractevent(topics = ["BettingGame", "Game_allUserHaveVoted"], data_format = "single-value")]
+struct GameAllUserHaveVotedEvent {
     game_id: i128,
 }
 #[contractevent(topics = ["BettingGame", "Game_Setting_Distributed"], data_format = "single-value")]
@@ -89,8 +99,13 @@ impl BettingEvents {
         }
         .publish(&e);
     }
-    pub fn game_result(e: &Env, game_id: i128, result: BetKey) {
-        GameResultEvent { game_id, result }.publish(&e);
+    pub fn game_result(e: &Env, game_id: i128, result: BetKey, description: String) {
+        GameResultEvent {
+            game_id,
+            result,
+            description,
+        }
+        .publish(&e);
     }
     pub fn game_result_reject(e: &Env, game_id: i128) {
         GameResultRejectEvent { game_id }.publish(&e);
@@ -106,5 +121,11 @@ impl BettingEvents {
     }
     pub fn user_honesty_points(e: &Env, user: Address, points: i128) {
         UserHonestyPointsEvent { user, points }.publish(&e);
+    }
+    pub fn active_setting(e: &Env, game_id: i128, Setting: i128) {
+        Active_SettingEvent { game_id, Setting }.publish(&e);
+    }
+    pub fn all_vote(e: &Env, game_id: i128) {
+        GameAllUserHaveVotedEvent { game_id }.publish(&e);
     }
 }

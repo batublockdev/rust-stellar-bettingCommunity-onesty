@@ -326,7 +326,46 @@ pub fn get_HonestyPoints(env: Env, user: Address) -> i128 {
         .unwrap_or(0);
     honesty
 }
+pub fn add_UsersAmount(env: Env, game: i128) {
+    let amount: i128 = env
+        .storage()
+        .persistent()
+        .get(&DataKey::AmountUsers(game))
+        .unwrap_or(0);
+    let total = amount + 1;
+    env.storage()
+        .persistent()
+        .set(&DataKey::AmountUsers(game), &total);
+}
 
+pub fn UsersAmount(env: Env, game: i128) -> bool {
+    let amountX: i128 = env
+        .storage()
+        .persistent()
+        .get(&DataKey::AmountUsersVoted(game))
+        .unwrap_or(0);
+    let amount: i128 = env
+        .storage()
+        .persistent()
+        .get(&DataKey::AmountUsers(game))
+        .unwrap_or(0);
+    if amountX == amount {
+        true
+    } else {
+        false
+    }
+}
+pub fn add_UsersAmountVoted(env: Env, game: i128) {
+    let amount: i128 = env
+        .storage()
+        .persistent()
+        .get(&DataKey::AmountUsersVoted(game))
+        .unwrap_or(0);
+    let total = amount + 1;
+    env.storage()
+        .persistent()
+        .set(&DataKey::AmountUsersVoted(game), &total);
+}
 pub fn verifySettingId(env: Env, SettingId: i128) {
     let publicBet = env
         .storage()

@@ -16,7 +16,7 @@ use crate::{
     },
 };
 use soroban_sdk::{
-    contract, contractevent, contractimpl, panic_with_error, symbol_short, token, vec,
+    contract, contractimpl, panic_with_error, symbol_short, token, vec,
     xdr::{ScVal, ToXdr, WriteXdr},
     Address, Bytes, BytesN, Env, IntoVal, String, Symbol, Vec,
 };
@@ -41,6 +41,9 @@ impl betting for BettingContract {
         }
         // Save data
         storage::init(env, admin, token_usd, token_trust, supreme_court);
+    }
+    fn game(env: Env, game: Game) -> bool {
+        true
     }
     /*
        @dev this funtion request to be a result summiter
@@ -115,6 +118,8 @@ impl betting for BettingContract {
             if !privateBet.active {
                 if storage::does_bet_active(env.clone(), bet.clone()) {
                     storage::active_private_setting(env.clone(), bet.clone().Setting, true);
+                    BettingEvents::active_setting(&env, privateBet.gameid, privateBet.id);
+                    //if the game hasn't been actived we select the summiter
                     if active == false {
                         Self::select_summiter(env.clone(), privateBet.gameid)
                     }
@@ -135,12 +140,15 @@ impl betting for BettingContract {
             if !publicBet.active {
                 if storage::does_bet_active(env.clone(), bet.clone()) {
                     storage::active_public_setting(env.clone(), bet.clone().Setting, true);
+                    BettingEvents::active_setting(&env, publicBet.gameid, publicBet.id);
+                    //if the game hasn't been actived we select the summiter
                     if active == false {
                         Self::select_summiter(env.clone(), publicBet.gameid)
                     }
                 }
             }
         }
+        storage::add_UsersAmount(env.clone(), bet.clone().Setting);
         storage::add_total_bet(env.clone(), bet.clone().gameid, bet.clone().amount_bet);
         storage::add_HonestyPoints(env.clone(), user.clone(), MINUS_TWENTY_POINTS);
         let points = storage::get_HonestyPoints(env.clone(), user.clone());
@@ -447,14 +455,19 @@ impl betting for BettingContract {
                     }
 
                     storage::set_ResultGame(env.clone(), result.clone());
-                    BettingEvents::game_result(&env, result.gameid, result.result);
+                    BettingEvents::game_result(
+                        &env,
+                        result.gameid,
+                        result.result,
+                        result.description,
+                    );
                 }
             } else {
                 if !checkers.contains(&user) {
                     panic_with_error!(&env, BettingError::NotAllowToSummitResult);
                 }
                 storage::set_ResultGame(env.clone(), result.clone());
-                BettingEvents::game_result(&env, result.gameid, result.result);
+                BettingEvents::game_result(&env, result.gameid, result.result, result.description);
             }
         } else {
             if summiter != user {
@@ -462,7 +475,7 @@ impl betting for BettingContract {
             }
 
             storage::set_ResultGame(env.clone(), result.clone());
-            BettingEvents::game_result(&env, result.gameid, result.result);
+            BettingEvents::game_result(&env, result.gameid, result.result, result.description);
         }
     }
     /*
@@ -489,7 +502,7 @@ impl betting for BettingContract {
         if endTime > env.ledger().timestamp() as u32 {
             panic_with_error!(&env, BettingError::GameHasNotFinished);
         }
-        if endTime + (5 * 60 * 60) < env.ledger().timestamp() as u32 {
+        if endTime + (5 * ONE_HOUR_SECONDS) < env.ledger().timestamp() as u32 {
             panic_with_error!(&env, BettingError::GameAssesmentHasFinished);
         }
 
@@ -525,6 +538,10 @@ impl betting for BettingContract {
                     resultAssessment.UsersReject.push_front(user.clone());
                     results.pause = true;
                 }
+            }
+            storage::add_UsersAmountVoted(env.clone(), setting.clone());
+            if storage::UsersAmount(env.clone(), setting.clone()) {
+                BettingEvents::all_vote(&env, setting.clone());
             }
             storage::set_ResultAssessment(env.clone(), game_id.clone(), resultAssessment.clone());
             storage::delete_not_assesed_yet(
@@ -687,7 +704,7 @@ impl betting for BettingContract {
         let xresult: ResultGame = storage::get_ResultGame(env.clone(), result.clone().gameid);
         let (exist, startTime, endTime, summiter, checkers, _) =
             storage::existBet(env.clone(), xresult.clone().gameid);
-        if endTime + (5 * 60 * 60) < env.ledger().timestamp() as u32 {
+        if endTime + (5 * ONE_HOUR_SECONDS) < env.ledger().timestamp() as u32 {
             panic_with_error!(&env, BettingError::GameAssesmentHasFinished);
         }
         if xresult.clone().distribution_executed {
@@ -767,21 +784,25 @@ impl betting for BettingContract {
        @param env Environment
        @param game_id i128 The id of the game
     */
-    fn execute_distribution(env: Env, gameId: i128) {
+    fn execute_distribution(env: Env, gameId: i128, setting: i128) {
         let complain = 2; // 2 means no complain was made
         let result: ResultGame = storage::get_ResultGame(env.clone(), gameId.clone());
         let (exist, startTime, endTime, summiter, checkers, _) =
             storage::existBet(env.clone(), result.clone().gameid);
-        if endTime + (5 * 60 * 60) < env.ledger().timestamp() as u32 {
-            panic_with_error!(&env, BettingError::GameAssesmentHasFinished);
+        if endTime + (5 * ONE_HOUR_SECONDS) < env.ledger().timestamp() as u32 {
+            if !storage::UsersAmount(env.clone(), setting.clone()) {
+                panic_with_error!(&env, BettingError::GameAssesmentHasFinished);
+            }
         }
-        let listedPrivateBet: Vec<(i128)> =
-            storage::get_privateSettingList(env.clone(), result.clone().gameid);
         if result.pause == true {
             panic_with_error!(&env, BettingError::GameHasBeenPaused);
         }
         if result.clone().distribution_executed {
             panic_with_error!(&env, BettingError::GameHasAlreadyBeenExecuted);
+        }
+        let privateBet: PrivateBet = storage::get_PrivateBet(env.clone(), setting.clone());
+        if privateBet.active == false {
+            panic_with_error!(&env, BettingError::SettingNotActive);
         }
         if result.result == BetKey::Cancel {
             storage::active_public_setting(env.clone(), gameId, false);
@@ -808,22 +829,16 @@ impl betting for BettingContract {
             }
         }
 
-        for setting in listedPrivateBet.iter() {
-            let privateBet: PrivateBet = storage::get_PrivateBet(env.clone(), setting.clone());
-            if privateBet.active == false {
-                continue;
-            }
-            if result.result == BetKey::Cancel {
-                storage::active_private_setting(env.clone(), setting.clone(), false);
-            } else {
-                Self::make_distribution(
-                    env.clone(),
-                    privateBet.clone().gameid,
-                    setting.clone(),
-                    result.clone().result,
-                    complain,
-                );
-            }
+        if result.result == BetKey::Cancel {
+            storage::active_private_setting(env.clone(), setting.clone(), false);
+        } else {
+            Self::make_distribution(
+                env.clone(),
+                privateBet.clone().gameid,
+                setting.clone(),
+                result.clone().result,
+                complain,
+            );
         }
     }
     /*
